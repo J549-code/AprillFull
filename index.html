@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>We Hacked You</title>
+    <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Orbitron', monospace; 
+            background: #000; 
+            color: #00ff00; 
+            overflow: hidden; 
+            height: 100vh; 
+        }
+        .container { position: relative; width: 100%; height: 100vh; }
+        .screen { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            text-align: center; padding: 20px; 
+        }
+        .hidden { display: none !important; }
+        .typing { font-size: 2.5rem; font-weight: 900; margin-bottom: 20px; min-height: 4rem; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; max-width: 800px; }
+        .info-item { background: rgba(0,255,0,0.1); padding: 15px; border: 1px solid #00ff00; border-radius: 5px; }
+        .progress-bar { width: 100%; height: 20px; background: #333; border: 1px solid #00ff00; margin: 10px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #ff0000, #00ff00); transition: width 0.3s; }
+        .countdown { font-size: 4rem; font-weight: 900; color: #ff0000; text-shadow: 0 0 10px #ff0000; }
+        .glitch { animation: glitch 0.3s infinite; }
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+        .files-list { list-style: none; max-width: 400px; }
+        .files-list li { padding: 10px; background: rgba(255,0,0,0.2); margin: 10px 0; border-left: 4px solid #ff0000; }
+        .webcam-placeholder { width: 200px; height: 150px; background: #111; border: 2px solid #00ff00; margin: 20px 0; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        .reveal { background: linear-gradient(45deg, #ff00ff, #00ffff); color: #000; animation: rainbow 2s infinite; }
+        @keyframes rainbow { 0%,100%{background: #ff00ff;} 25%{background: #00ff00;} 50%{background: #ffff00;} 75%{background: #ff0000;} }
+        .share-btn { padding: 15px 30px; font-size: 1.2rem; font-weight: bold; background: #00ff00; color: #000; border: none; border-radius: 10px; cursor: pointer; margin-top: 20px; }
+        @media (max-width: 600px) { .typing { font-size: 1.5rem; } .countdown { font-size: 2.5rem; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hacking Screen -->
+        <div id="hackScreen" class="screen">
+            <div class="typing" id="type1"></div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>Device:</strong> Windows 11<br>
+                    <strong>Browser:</strong> Chrome 123.0
+                </div>
+                <div class="info-item">
+                    <strong>Location:</strong> <span id="location">Detecting...</span><br>
+                    <strong>IP:</strong> 192.168.1.<span id="fakeIP">???</span>
+                </div>
+            </div>
+            <div class="webcam-placeholder glitch" id="webcam">🔴 Webcam Activated</div>
+            <div class="progress-bar"><div class="progress-fill" id="scanProgress" style="width:0%"></div></div>
+            <div id="scaryMsg" class="typing"></div>
+        </div>
+
+        <!-- Countdown Screen -->
+        <div id="countdownScreen" class="screen hidden">
+            <div class="countdown glitch" id="countdown">3</div>
+            <div class="typing glitch">Accessing files...</div>
+            <ul class="files-list">
+                <li>📸 embarrassing_selfie_2024.jpg</li>
+                <li>😂 dance_fail_video.mp4</li>
+                <li>💩 bathroom_singing.m4a</li>
+                <li>😱 crush_confession.txt (13 total)</li>
+            </ul>
+        </div>
+
+        <!-- Reveal Screen -->
+        <div id="revealScreen" class="screen hidden reveal">
+            <h1 style="font-size: 3rem; margin-bottom: 20px;">RELAX 😂</h1>
+            <p style="font-size: 1.5rem; max-width: 600px;">
+                We can’t access ANYTHING! This is just a prank!<br>
+                🎉 HAPPY APRIL FOOLS 2026! 🎉
+            </p>
+            <button class="share-btn" onclick="sharePrank()">Prank Your Friends!</button>
+        </div>
+    </div>
+
+    <script>
+        // Session Tracking
+        function trackSession() {
+            // Get visitor information
+            const sessionData = {
+                ip_address: null, // Will be filled by server
+                user_agent: navigator.userAgent,
+                location: 'Detecting...',
+                referrer: document.referrer || 'Direct',
+                screen_resolution: `${screen.width}x${screen.height}`,
+                language: navigator.language,
+                platform: navigator.platform,
+                cookies_enabled: navigator.cookieEnabled,
+                local_storage: typeof(Storage) !== "undefined",
+                session_storage: typeof(sessionStorage) !== "undefined"
+            };
+
+            // Try to get location (same as your existing code)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=en`)
+                        .then(r => r.json()).then(data => {
+                            sessionData.location = data.city || 'Unknown';
+                            sendSessionData(sessionData);
+                        }).catch(() => {
+                            sessionData.location = 'Unknown';
+                            sendSessionData(sessionData);
+                        });
+                }, () => {
+                    sessionData.location = 'Unknown';
+                    sendSessionData(sessionData);
+                });
+            } else {
+                sessionData.location = 'Unknown';
+                sendSessionData(sessionData);
+            }
+        }
+
+        function sendSessionData(sessionData) {
+            // Send data to your server
+            fetch('/track', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(sessionData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Session tracked:', data.sessionId);
+            })
+            .catch(error => {
+                console.error('Error tracking session:', error);
+            });
+        }
+
+        // Track session when page loads
+        window.addEventListener('load', trackSession);
+
+        // Fake IP
+        document.getElementById('fakeIP').textContent = Math.floor(Math.random() * 255) + 1;
+
+        // Auto-detect location (fallback to Vadodara)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=en`)
+                    .then(r => r.json()).then(data => {
+                        document.getElementById('location').textContent = data.city || 'Vadodara 👀';
+                    }).catch(() => {
+                        document.getElementById('location').textContent = 'Vadodara 👀';
+                    });
+            }, () => {
+                document.getElementById('location').textContent = 'Vadodara 👀';
+            });
+        } else {
+            document.getElementById('location').textContent = 'Vadodara 👀';
+        }
+
+        // Typing effect
+        new Typed('#type1', {
+            strings: ['Accessing your device...', 'Bypassing firewall... ✓', 'Scanning files...'],
+            typeSpeed: 50, backSpeed: 30, backDelay: 1000, loop: true
+        });
+
+        // Scan progress
+       let progress = 0;
+const progInterval = setInterval(() => {
+    progress += Math.random() * 15;
+    if (progress > 100) progress = 100;
+    document.getElementById('scanProgress').style.width = progress + '%';
+    if (progress >= 100) {
+        clearInterval(progInterval);
+        document.getElementById('scaryMsg').innerHTML = 'We found <strong>13 EMBARRASSING FILES</strong> 💀';
+        setTimeout(showCountdown, 2000);
+    }
+}, 200);
+
+
+
+        // Glitch webcam
+        setInterval(() => {
+            document.getElementById('webcam').classList.toggle('glitch');
+        }, 100);
+
+        // Optional scary sound (uncomment and add free sound URL)
+        // new Audio('https://example.com/scary-beep.mp3').play();
+
+        function showCountdown() {
+            document.getElementById('hackScreen').classList.add('hidden');
+            document.getElementById('countdownScreen').classList.remove('hidden');
+            let time = 3;
+            const cd = document.getElementById('countdown');
+            const cdInt = setInterval(() => {
+    cd.textContent = time;
+    cd.classList.add('glitch');
+    time--;
+    if (time < 0) {
+        clearInterval(cdInt);
+        revealPrank();
+    }
+}, 1500); // was 800 → almost 2x slower
+
+        }
+
+        function revealPrank() {
+            document.getElementById('countdownScreen').classList.add('hidden');
+            document.getElementById('revealScreen').classList.remove('hidden');
+            confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
+        }
+
+        function sharePrank() {
+            if (navigator.share) {
+                navigator.share({ title: 'We Hacked You (Prank)', url: window.location.href });
+            } else {
+                alert('Copy this link and share the prank! ' + window.location.href);
+            }
+        }
+    </script>
+</body>
+</html>
