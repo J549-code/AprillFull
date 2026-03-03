@@ -107,24 +107,33 @@
                 session_storage: typeof(sessionStorage) !== "undefined"
             };
 
-            // Try to get location (same as your existing code)
+            // Try to get location - but send data immediately and update location if successful
+            sendSessionData(sessionData);
+
+            // Simultaneously try to get geolocation for better accuracy
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=en`)
-                        .then(r => r.json()).then(data => {
-                            sessionData.location = data.city || 'Unknown';
-                            sendSessionData(sessionData);
-                        }).catch(() => {
-                            sessionData.location = 'Unknown';
-                            sendSessionData(sessionData);
-                        });
-                }, () => {
-                    sessionData.location = 'Unknown';
-                    sendSessionData(sessionData);
-                });
-            } else {
-                sessionData.location = 'Unknown';
-                sendSessionData(sessionData);
+                navigator.geolocation.getCurrentPosition(
+                    pos => {
+                        // Success - get city from coordinates
+                        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=en`)
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.city) {
+                                    sessionData.location = data.city;
+                                    // Update the database with the more accurate location
+                                    sendSessionData(sessionData);
+                                }
+                            })
+                            .catch(() => {
+                                // Silently fail - already sent initial data
+                            });
+                    },
+                    () => {
+                        // Permission denied or error - continue with 'Detecting...'
+                        console.log('Geolocation not available');
+                    },
+                    { timeout: 5000, maximumAge: 0 }
+                );
             }
         }
 
@@ -146,7 +155,9 @@
             });
         }
 
-        // Track session when page loads
+        // Track session immediately (don't wait for page load)
+        trackSession();
+        // Also track when page fully loads
         window.addEventListener('load', trackSession);
 
         // Fake IP
